@@ -1,7 +1,10 @@
+%-----------------------------------------------------------------------
 % This code is a finite state machine created using switch case statements, designed to classify the
 % joint state of a tactile sensor to determine whether the sensor is actively in contact or not. 
 % The transition thresholds are tuned to real world sensor dynamics and can be used in real-time on a robot
 % or to classify existing sensor joint state data.
+% By Adam Gronewold
+%----------------------------------------------------------------------
 
 
 if i <= sensor.classifier_window
