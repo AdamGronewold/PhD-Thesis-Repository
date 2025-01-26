@@ -10,6 +10,7 @@
 % from the tactile sensor and from GPS located at the robots center, code related to waypoint creation, 
 % code for A-star planning, code to control the robots dynamics with pure pursuit, and code to perform the animation
 % and optionally save the animation as an mp4 after simulation.
+% By Adam Gronewold
 %--------------------------------------------------------------------------
 % INITIALIZATION
 clear all
