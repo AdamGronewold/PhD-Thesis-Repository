@@ -1,3 +1,10 @@
+%--------------------------------------------------------------------------
+% This code is a simulation environemnt which is fixed in the animation frame
+% with plants approaching at a predetermined rate. It is used to tune the 
+% tactile sensor to accurately detect and localize incident plants. 
+% By Adam Gronewold
+%--------------------------------------------------------------------------
+
 clear all
 
 % Initial sensor parameters
