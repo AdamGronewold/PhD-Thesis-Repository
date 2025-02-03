@@ -1,0 +1,242 @@
+<?xml version='1.0'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="terrain_patches">
+	
+	<!--run "rosrun xacro xacro.py terrain_patches.urdf.xacro > terrain_patches.urdf" to copy this .urdf.xacro to a .urdf-->
+	
+	<!--general infrastructure loosely follows http://gazebosim.org/tutorials/?tut=ros_urdf for urdf use in Gazebo. -->
+
+	<!--Properties-->
+	<xacro:property name="x_width" value="5" /> <!--dimension of blocks in x-->
+	<xacro:property name="y_length" value="5" /> <!--dimension of blocks in y-->
+	<xacro:property name="z_height" value="0.2"/> <!--dimension of blocks in z-->
+
+	<xacro:property name="body_mass" value="500" /> <!--arbitrarily large mass-->
+	<xacro:property name="inertia_coeff" value="${(1/12)*body_mass}"/>
+
+
+	<!-- Import Rviz colors -->
+	<xacro:include filename="$(find terrain_patches)/urdf/materials.xacro" />
+
+<!--____________________________________________________________________-->
+	<!--Macros-->
+	<xacro:macro name="default_inertial">
+		<inertial>
+			<mass value="${body_mass}" />
+			<inertia 
+				ixx="${inertia_coeff*(pow(z_height,2) + pow(y_length,2))}" ixy="0" ixz="0" 
+				iyy="${inertia_coeff*(pow(z_height,2) + pow(x_width,2))}" iyz="0"
+				izz="${inertia_coeff*(pow(x_width,2) + pow(y_length,2))}"/>
+		</inertial>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="fixed_joint_macro" params="xyz name parent child">
+		<joint name="${name}" type="prismatic">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="0 0 1"/>
+			<limit effort="-1" lower="-0.0001" upper="0.0001" velocity="-1"/>
+		</joint>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="friction_macro" params="mu mu2 min_depth kp kd rc thresh">
+		<surface>
+			<!--http://sdformat.org/spec?ver=1.5&elem=collision#bullet_friction for more; very helpful-->
+			<friction>
+				<!--mu Coulomb friction in one direction-->
+				<!--mu2 Coulomb friction perpendicular-->
+				<!--fdir1 direction of mu-->
+				<ode
+					mu="${mu}" 
+					mu2="${mu2}" 
+					fdir1="1 0 0" 
+					slip1="0.0"
+					slip2="0.0"
+				/>
+			</friction>
+			<contact>
+				<!--kp stiffness; 1e12 default-->
+				<!--kd damping; 1 default-->
+				<ode
+					min_depth="${min_depth}"
+					kp="${kp}" 
+					kd="${kd}" 
+				/>
+			</contact>
+			<!--rc is "bounciness"; 0-1-->
+			<!--capture velocity below which effective 
+			restitution is 0; 100000 default-->
+			<bounce
+				restitution_coefficient="${rc}"
+				threshold="${thresh}"
+			/>
+		</surface>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="link_macro" params="xyz name mu mu2 min_depth kp kd rc thresh color">
+		<link name="${name}">
+			<xacro:default_inertial />
+			<collision>
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${x_width} ${y_length} ${z_height}" />
+				</geometry>
+				<xacro:friction_macro mu="${mu}" mu2="${mu2}" min_depth="${min_depth}" kp="${kp}" kd="${kd}" rc="${rc}" thresh="${thresh}"/>
+			</collision>
+			<visual>
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${x_width} ${y_length} ${z_height}" />
+				</geometry>
+				<material name="${color}"/>
+			</visual>
+			
+		</link>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="block_macro" params="name name2 xyz xyz2 parent child mu mu2 min_depth kp kd rc thresh color">
+		<xacro:link_macro name="${name}" xyz="${xyz}" mu="${mu}" mu2="${mu2}" min_depth="${min_depth}" kp="${kp}" kd="${kd}" rc="${rc}" thresh="${thresh}" color="${color}"/>
+
+		<xacro:fixed_joint_macro 
+				name="${name2}" xyz="${xyz2}" 
+				parent="${parent}" child="${child}"/>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+
+
+	<!--Construction of blocks-->
+	<!--Gazebo colors and plugins specified in terrain_patches_plugin.gazebo-->
+	<link name="world"/>
+	<joint name="world_to_base_link" type="fixed">
+		<parent link="world"/>
+		<child link="base_link"/>
+	</joint>
+
+	<!-- Block1 -->	
+	<xacro:link_macro 
+				name="base_link" xyz="0 0 ${z_height}"  
+				mu="0.3" mu2="0.3" min_depth="0.01" 
+				kp="1e8" kd="0.2" rc="0.00001" thresh="10" 
+				color="green"/>		
+	<!-- Block2 -->	
+	<xacro:block_macro 
+				name="block_x1y0" xyz="${x_width/2} 0 ${z_height}"
+				name2="block_x1y0_joint" xyz2="${(1/2)*x_width} 0 0"
+				parent="base_link" child="block_x1y0"
+				mu="0.6" mu2="0.6" min_depth="0.03" 
+				kp="1e8" kd="0.3" rc="0.000000" thresh="100000" 
+				color="brown"/>
+	<!-- Block3 -->	
+	<xacro:block_macro 
+				name="block_x1y1" xyz="${x_width/2} ${y_length/2} ${z_height}"
+				name2="block_x1y1_joint" xyz2="0 ${(1/2)*y_length} 0" 
+				parent="block_x1y0" child="block_x1y1"
+				mu="0.1" mu2="0.1" min_depth="0.1" 
+				kp="1e8" kd="0.7" rc="0.001" thresh="100000" 
+				color="green"/>
+	<!-- Block4 -->				
+	<xacro:block_macro 
+				name="block_x0y1" xyz="0 ${y_length/2} ${z_height}"
+				name2="block_x0y1_joint" xyz2="${(-1/2)*x_width} 0 0" 
+				parent="block_x1y1" child="block_x0y1"
+				mu="0.5" mu2="0.5" min_depth="0.00001" 
+				kp="1e8" kd="0.01" rc="0.00001" thresh="100000" 
+				color="brown"/> 
+	<!-- Block5 -->				
+	<xacro:block_macro 
+				name="block_-x1y1" xyz="${-x_width/2} ${y_length/2} ${z_height}"
+				name2="block_-x1y1_joint" xyz2="${(-1/2)*x_width} 0 0" 
+				parent="block_x0y1" child="block_-x1y1"
+				mu="0.5" mu2="0.5" min_depth="0.00001" 
+				kp="1e8" kd="0.01" rc="0.00001" thresh="100000" 
+				color="green"/>
+	<!-- Block6 -->				
+	<xacro:block_macro 
+				name="block_-x1y0" xyz="${-x_width/2} 0 ${z_height}"
+				name2="block_-x1y0_joint" xyz2="0 ${(-1/2)*y_length} 0" 
+				parent="block_-x1y1" child="block_-x1y0"
+				mu="0.5" mu2="0.5" min_depth="0.00001" 
+				kp="1e8" kd="0.01" rc="0.00001" thresh="100000" 
+				color="brown"/>
+	<!-- Block7 -->				
+	<xacro:block_macro 
+				name="block_-x1-y1" xyz="${-x_width/2} ${-y_length/2} ${z_height}"
+				name2="block_-x1-y1_joint" xyz2="0 ${(-1/2)*y_length} 0" 
+				parent="block_-x1y0" child="block_-x1-y1"
+				mu="0.5" mu2="0.5" min_depth="0.00001" 
+				kp="1e8" kd="0.01" rc="0.00001" thresh="100000" 
+				color="tan"/> 
+	<!-- Block8 -->				
+	<xacro:block_macro 
+				name="block_x0-y1" xyz="0 ${-y_length/2} ${z_height}"
+				name2="block_x0-y1_joint" xyz2="${(1/2)*x_width} 0 0" 
+				parent="block_-x1-y1" child="block_x0-y1"
+				mu="0.5" mu2="0.5" min_depth="0.00001" 
+				kp="1e8" kd="0.01" rc="0.00001" thresh="100000" 
+				color="tan"/> 
+	<!-- Block9 -->				
+	<xacro:block_macro 
+				name="block_x1-y1" xyz="${x_width/2} ${-y_length/2} ${z_height}"
+				name2="block_x1-y1_joint" xyz2="${(1/2)*x_width} 0 0" 
+				parent="block_x0-y1" child="block_x1-y1"
+				mu="0.5" mu2="0.5" min_depth="0.00001" 
+				kp="1e8" kd="0.01" rc="0.00001" thresh="100000" 
+				color="tan"/> 
+				
+<!--____________________________________________________________________-->
+		
+	<!-- ros_control plugin -->
+	<gazebo>
+		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+			<robotNamespace>/terrain_patches</robotNamespace>
+			<robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+		</plugin>
+	</gazebo>
+
+	<!-- Specifying Gazebo Colors -->  
+	<!-- Block1 -->
+	<gazebo reference="base_link">
+		<material>Gazebo/Grass</material>
+	</gazebo>
+
+	<!-- Block2 -->
+	<gazebo reference="block_x1y0">
+		<material>Gazebo/Tertiary</material>
+	</gazebo>
+
+	<!-- Block3 -->
+	<gazebo reference="block_x1y1">
+		<material>Gazebo/Grass</material>
+	</gazebo>
+
+	<!-- Block4 -->
+	<gazebo reference="block_x0y1">
+		<material>Gazebo/Tertiary</material>
+	</gazebo>
+	
+	<!-- Block5 -->
+	<gazebo reference="block_-x1y1">
+		<material>Gazebo/Grass</material>
+	</gazebo>
+	
+	<!-- Block6 -->
+	<gazebo reference="block_-x1y0">
+		<material>Gazebo/Tertiary</material>
+	</gazebo>
+	
+	<!-- Block7 -->
+	<gazebo reference="block_-x1-y1">
+		<material>Gazebo/Gold</material>
+	</gazebo>
+	
+	<!-- Block8 -->
+	<gazebo reference="block_x0-y1">
+		<material>Gazebo/Gold</material>
+	</gazebo>
+	
+	<!-- Block9 -->
+	<gazebo reference="block_x1-y1">
+		<material>Gazebo/Gold</material>
+	</gazebo>
+
+</robot>

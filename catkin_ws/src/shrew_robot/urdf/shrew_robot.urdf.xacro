@@ -1,0 +1,616 @@
+<?xml version='1.0'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="shrew_robot">
+
+	<!--VERSION 2.01-->
+	
+	<!--Notes:-->
+	<!--Recommended you read the associated README.md first-->
+	<!--Properties and Macros sorted according to their order of appearance in the construction of the robot at the bottom of this file.-->
+	<!--general infrastructure VERY loosely follows http://gazebosim.org/tutorials/?tut=ros_urdf for urdf use in Gazebo. -->
+	<!--Assumes operation (masses) for the Earth-->
+	<!--run "rosrun xacro xacro.py shrew_robot.urdf.xacro > shrew_robot.urdf" to copy this .urdf.xacro to a .urdf if needed-->
+
+
+<!--CONSTANTS CONSTANTS CONSTANTS CONSTANTS CONSTANTS CONSTANTS CONSTANTS-->
+<!--____________________________________________________________________-->
+	<xacro:property name="pi" value="3.141592"/>
+	<xacro:property name="pi2" value="1.570296"/>
+	<xacro:property name="pi4" value="0.785398"/>
+	
+	<xacro:property name="body_x" value="0.5"/> <!--x dim of midframe links-->
+	<xacro:property name="body_y" value="0.103"/> <!--y dim of midframe links-->
+	<xacro:property name="body_z" value="0.025"/> <!--z dim of midframe links-->
+	<xacro:property name="body_mass" value="3"/> <!--mass of midframe links-->
+	<xacro:property name="bm_inertia_coeff" value="${(1/12)*body_mass}"/> <!--coefficients in inertia matrix for midframe links-->
+
+	<xacro:property name="attachment_x" value="0.04"/> <!--x dim of attachment links-->
+	<xacro:property name="attachment_y" value="0.04"/> <!--y dim of attachment links-->
+	<xacro:property name="attachment_z" value="0.1"/> <!--z dim of attachment links-->
+	<xacro:property name="attachment_mass" value="0.36"/> <!--mass of attachment links-->
+	<xacro:property name="attachment_inertial" value="${(1/12)*attachment_mass}"/> <!--coefficients in inertia matrix for attachment links-->
+
+	<xacro:property name="axle_x" value="0.2"/> <!--x dim of axles-->
+	<xacro:property name="axle_y" value="1"/> <!--y dim of axles-->
+	<xacro:property name="axle_z" value="0.2"/> <!--z dim of axles-->
+	<xacro:property name="axle_mass" value="5"/> <!--mass of each axle-->
+	<xacro:property name="axle_inertial" value="${(1/12)*axle_mass}"/>	<!--coefficients in inertia matrix for axle-->
+	
+	<xacro:property name="wheel_mass" value="0.8358"/> <!--mass of each wheel-->
+	<xacro:property name="wheel_radius" value="0.1396"/> <!--wheel radius (m)-->
+	<xacro:property name="wheel_joint" value="0.275"/> <!--wheel joint location-->
+	
+	<xacro:property name="dummy_radius" value="0.01"/>
+	<xacro:property name="body_to_axle" value="0.07"/> <!--old value="0.094"-->
+	
+	<xacro:property name="electronics_box_x" value="0.25" />
+	<xacro:property name="electronics_box_y" value="0.25" />
+	<xacro:property name="electronics_box_z" value="0.30" />
+	<xacro:property name="electronics_box_mass" value="4" />
+	<xacro:property name="electronics_box_offset" value="0.05" />
+	
+	<!--currently unused-->
+	<!--xacro:property name="axel_offset" value="0.5"/-->
+	<!--xacro:property name="axel_offset2" value="-0.5"/-->
+	<!--xacro:property name="axel_z_offset" value="-0.3"/-->
+	<!--xacro:property name="connector_length" value="1.5"/-->
+	<!--xacro:property name="connector_x" value="1.5"/-->
+	<!--xacro:property name="connector_y" value="0.25"/-->
+	<!--xacro:property name="connector_z" value="0.25"/-->
+	<!--xacro:property name="connector_mass" value="1.83"/-->
+	
+
+
+<!--MACROS MACROS MACROS MACROS MACROS MACROS MACROS MACROS MACROS MACROS-->
+<!--____________________________________________________________________-->
+
+
+	<xacro:macro name="body_macro" params="xyz name"> <!--✓-->
+		<!--construction of the midframe links-->
+		<link name="${name}">
+			<inertial>
+				<origin xyz="${xyz}"/>
+				<mass value="${body_mass}"/>
+				<inertia 
+					ixx="${bm_inertia_coeff*(pow(body_z,2) + pow(body_y,2))}" ixy="0" ixz="0"
+					iyy="${bm_inertia_coeff*(pow(body_z,2) + pow(body_x,2))}" iyz="0" 
+					izz="${bm_inertia_coeff*(pow(body_x,2) + pow(body_y,2))}"/>
+			</inertial>
+			<collision name="collision">
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${body_x} ${body_y} ${body_z}" />
+				</geometry>
+			</collision>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${body_x} ${body_y} ${body_z}" />
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="silver_material"> <!--✓-->
+		<!--simple silver color for visual elements-->
+		<material name="silver">
+			<color rgba="0.75 0.75 0.75 1"/>
+		</material>	
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="prismatic_joint_macro" params="xyz name parent child"> <!--✓-->
+		<!--defines translational degree of freedom-->
+		<joint name="${name}" type="prismatic">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="1  0  0"/> <!--transmission only enabled along x-->
+			<limit effort="1000" lower="0" upper="${7*body_x/8}" velocity="2"/>
+			<!--effort corresponds to a joint which can translate between [0,7/8*body_x], max velocity of 0.5m/s and 100% allowable effort-->
+		</joint>
+  		<xacro:trans_macro name="${name}"/>
+	</xacro:macro>
+
+<!--____________________________________________________________________-->
+	<xacro:macro name="trans_macro" params="name"> <!--✓-->
+		<!--defines the simplest possible transmission for a given joint
+		Reference: http://docs.ros.org/en/jade/api/transmission_interface/html/c++/classtransmission__interface_1_1SimpleTransmission.html--> 
+		<transmission name="trans_${name}">
+			<type>transmission_interface/SimpleTransmission</type>
+			<joint name="${name}">
+				<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+			</joint>
+			<actuator name="motor_${name}">
+				<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+				<mechanicalReduction>1</mechanicalReduction>
+			</actuator>
+		</transmission>
+	</xacro:macro>
+
+<!--____________________________________________________________________-->
+	<xacro:macro name="attachment_macro" params="xyz name">  <!--✓-->
+		<!--defines the link connecting a midframe link to an axle link-->
+		<link name="${name}">
+			<inertial>
+				<mass value="${attachment_mass}"/>
+				<origin rpy="0  0  0" xyz="0  0  0"/>   
+				<inertia 
+					ixx="${attachment_inertial*(pow(attachment_z,2) + pow(attachment_y,2))}" ixy="0" ixz="0" 
+					iyy="${attachment_inertial*(pow(attachment_z,2) + pow(attachment_x,2))}" iyz="0" 
+					izz="${attachment_inertial*(pow(attachment_x,2) + pow(attachment_y,2))}"/>
+			</inertial>
+			<collision name="collision">
+				<origin rpy="0  0  0" xyz="0 0 0"/>
+				<geometry>
+					<box size="${attachment_x} ${attachment_y} ${attachment_z}" />
+				</geometry>
+			</collision>
+			<visual name="visual">
+				<origin rpy="0  0  0" xyz="0 0 0"/>
+				<geometry>
+					<box size="${attachment_x} ${attachment_y} ${attachment_z}" />
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="roll_joint_macro" params="xyz axis name parent child"> <!--MUST ADD ENCODER-->
+		<!--used to define both yaw and roll joints-->
+		<joint name="${name}" type="revolute">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="${axis}"/>
+			<limit effort="1000" lower="-0.3" upper="0.3" velocity="-1"/>
+            <dynamics damping="0.01" friction="0.0"/>
+			<!--There is no control on joints, so effort is limited to nothing "-1"-->
+		</joint>
+		<xacro:trans_macro name="${name}"/>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="yaw_joint_macro" params="xyz axis name parent child"> <!--MUST ADD ENCODER-->
+		<!--used to define both yaw and roll joints-->
+		<joint name="${name}" type="revolute">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="${axis}"/>
+			<limit effort="-1" lower="-0.4" upper="0.4" velocity="-1"/> 
+			<!--There is no control on joints, so effort is limited to nothing "-1"-->
+		</joint>
+		<xacro:trans_macro name="${name}"/>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<!--xacro:macro name="pivot_joint_macro" params="xyz axis name parent child"> <MUST ADD ENCODER>
+		<used to define both yaw and roll joints>
+		<joint name="${name}" type="revolute">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="${axis}"/>
+			<limit effort="-1" lower="-0.3" upper="0.3" velocity="-1"/> 
+			<There is no control on joints, so effort is limited to nothing "-1">
+		</joint>
+		<xacro:trans_macro name="${name}"/>
+	</xacro:macro-->
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="axle_macro" params="xyz name"> <!--✓-->
+		<!--defines an axle link-->
+		<link name="${name}">
+			<inertial>
+				<mass value="${axle_mass}"/>
+				<origin rpy="0  0  0" xyz="0  0  0"/>
+				<inertia 
+					ixx="${axle_inertial*(pow(axle_z,2) + pow(axle_y,2))}" ixy="0" ixz="0" 
+					iyy="${axle_inertial*(pow(axle_z,2) + pow(axle_x,2))}" iyz="0" 
+					izz="${axle_inertial*(pow(axle_x,2) + pow(axle_y,2))}"/>
+			</inertial>
+			<collision name="collision">
+				<origin rpy="0 0 0" xyz="0    0   0"/>
+				<geometry>
+					<mesh filename="package://shrew_robot/meshes/shrew_axle.STL" scale="1.0 1.0 1.0"/>
+				</geometry>
+			</collision>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="0 0 0"/>
+				<geometry>
+					<mesh filename="package://shrew_robot/meshes/shrew_axle.STL" scale="1.0 1.0 1.0"/>
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+		
+<!--____________________________________________________________________-->
+	<xacro:macro name="wheel_macro" params="name model"> <!--✓-->
+		<!--defines wheel link-->
+		<link name="${name}">
+			<inertial>
+				<mass value="${wheel_mass}"/>
+				<origin rpy="0 0 0" xyz="0 0 0"/>
+				<inertia ixx="0.0074" ixy="0" ixz="0" iyy="0.0109" iyz="0" izz="0.0074"/>
+			</inertial>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0 "/>
+				<laser_retro>0</laser_retro>
+				<max_contacts>10</max_contacts>
+				<pose >0 0 0 0 0 0</pose>
+				<geometry>
+					<!--cylinder length="0.15" radius="${wheel_radius}"/--> <!--uncomment this line if a simplified contact model is desired-->
+					<mesh filename="package://shrew_robot/meshes/${model}" scale="1 1 1"/> <!--comment out line if a simplified contact model is desired-->
+				</geometry>
+			</collision>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="0 0 0"/>
+				<geometry>
+					<mesh filename="package://shrew_robot/meshes/${model}" scale="1 1 1"/>
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+		<xacro:wheel_gazebo_macro reference="${name}"/>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="wheel_gazebo_macro" params="reference">  <!--MAY NEED TWEAKING-->
+		<!--specifies required properties for gazebo contact surface.
+		Creates a topic for the contact of each wheel under 
+		/{wheel_name}/link/{wheel_name}_contact_sensor. The sensor publishes on this topic.
+		"gz topic -l" should list these.
+		Further reference: http://gazebosim.org/tutorials?tut=contact_sensor-->
+		<gazebo reference="${reference}">
+			<mu1>0.75</mu1>
+			<mu2>0.5</mu2>
+			<fdir1>1 0 0</fdir1>
+			<!-- contact sensor -->
+			<sensor type="contact" name="${reference}_contact_sensor">
+				<update_rate>50.0</update_rate>
+				<always_on>true</always_on>
+				<contact>
+					<collision>${reference}_collision</collision>
+				</contact>
+				<!--Feedback provided via the ContactsState message. Need to subscribe to the topic publishing this message.-->
+				<plugin name="lside_bumper_plugin" filename="libgazebo_ros_bumper.so">
+					<bumperTopicName>bumper_${reference}</bumperTopicName>
+					<frameName>World</frameName>
+				</plugin>
+			</sensor>
+			<self_collide>0</self_collide> <!--Making wheels collide with wheels.-->
+ 		</gazebo>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="joint_wheel_macro" params="xyz name parent child"> <!--MAY NEED TWEAKING-->
+		<!--Joint specifying the joint between a wheel and its axle-->
+		<joint name="${name}" type="continuous"> <!--MAY NEED CONTINUOUS-->
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0    0    0" xyz="${xyz}"/>
+			<axis xyz="0  1  0"/> <!--rotates only in y-->
+			<limit effort="-1" velocity="-1"/>
+		</joint>
+		<!--xacro:wheel_trans_macro name="${name}"/-->
+		<xacro:trans_macro name="${name}"/>
+	</xacro:macro>	
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="wheel_trans_macro" params="name"> <!--✓-->
+		<!--defines the simplest possible transmission for a given joint
+		Reference: http://docs.ros.org/en/jade/api/transmission_interface/html/c++/classtransmission__interface_1_1SimpleTransmission.html--> 
+		<transmission name="simple_trans">
+			<type>transmission_interface/SimpleTransmission</type>
+			<joint name="${name}">
+				<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+			</joint>
+			<actuator name="motor_${name}">
+				<hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+				<mechanicalReduction>1</mechanicalReduction>
+			</actuator>
+		</transmission>
+	</xacro:macro>
+	
+	
+<!--____________________________________________________________________>
+	<xacro:macro name="joint_wheel_macro" params="xyz name parent child"> <!MAY NEED TWEAKING>
+		<!Joint specifying the joint between a wheel and its axle>
+		<joint name="${name}" type="revolute"> <!MAY NEED CONTINUOUS>
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0    0    0" xyz="${xyz}"/>
+			<axis xyz="0  1  0"/> <!rotates only in y>
+			<limit effort="200" lower="-1e+16" upper="1e+16" velocity="-1"/>
+		</joint>
+		<xacro:trans_macro name="${name}"/>
+	</xacro:macro-->	
+
+<!--____________________________________________________________________-->
+	<xacro:macro name="dummy_link_macro" params="xyz name"> <!--✓-->
+		<!--Defines link to fix axle-->
+		<link name="${name}">
+			<inertial>
+				<mass value="0.0001"/>
+				<inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+			</inertial>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<sphere radius="${dummy_radius}"/>
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<xacro:macro name="fixed_joint_macro" params="xyz name parent child"> <!--✓-->
+		<joint name="${name}" type="fixed">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="1 0 0"/>
+			<limit effort="-1" lower="-0.000001" upper="0.000001" velocity="-1"/>
+		</joint>
+		<!--joint name="${name}" type="prismatic">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="1 0 0"/>
+			<limit effort="-1" lower="-0.0001" upper="0.0001" velocity="-1"/>
+		</joint-->
+		<gazebo reference='${name}'>
+			<preserveFixedJoint>true</preserveFixedJoint>
+		</gazebo>
+	</xacro:macro>
+
+<!--____________________________________________________________________-->
+	<xacro:macro name="part_macro" params="name model mass"> <!--✓-->
+		<!--Constructs model for visual features of robot like a winch or linking slot-->
+		<link name="${name}">
+			<inertial>
+				<mass value="${mass}"/>
+				<origin rpy="0  0  0" xyz="0  0  0"/>
+				<inertia ixx="0.49" ixy="0" ixz="0" iyy="0.37" iyz="0" izz="0.37"/>
+			</inertial>
+			<collision name="collision">
+				<origin rpy="0 0 0" xyz="0    0   0"/>
+				<geometry>
+					<mesh filename="package://shrew_robot/meshes/${model}" scale="1.0 1.0 1.0"/>
+				</geometry>
+			</collision>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="0 0 0"/>
+				<geometry>
+					<mesh filename="package://shrew_robot/meshes/${model}" scale="1.0 1.0 1.0"/>
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+
+<!--____________________________________________________________________-->
+	<xacro:macro name="electronics_box_macro" params="xyz name">
+		<link name="${name}">
+			<inertial>
+				<mass value="${electronics_box_mass}"/>
+				<inertia ixx="${(1/12)*electronics_box_mass*(pow(electronics_box_z,2) + pow(electronics_box_y,2))}" ixy="0" ixz="0" 
+				iyy="${(1/12)*electronics_box_mass*(pow(electronics_box_z,2) + pow(electronics_box_x,2))}" iyz="0" 
+				izz="${(1/12)*electronics_box_mass*(pow(electronics_box_x,2) + pow(electronics_box_y,2))}"/>
+			</inertial>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${electronics_box_x} ${electronics_box_y} ${electronics_box_z}" />
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+	
+<!--____________________________________________________________________-->
+	<!--Currently unused-->
+	<xacro:macro name="connector_link_macro" params="xyz name">
+		<link name="${name}">
+			<inertial>
+				<mass value="15"/>
+				<inertia ixx="${(1/12)*connector_mass*(pow(connector_z,2) + pow(connector_y,2))}" ixy="0" ixz="0" iyy="${(1/12)*connector_mass*(pow(connector_z,2) + pow(connector_x,2))}" iyz="0" izz="${(1/12)*connector_mass*(pow(connector_x,2) + pow(connector_y,2))}"/>
+			</inertial>
+			<visual name="visual">
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${connector_length} ${connector_y} ${connector_z}" />
+				</geometry>
+				<xacro:silver_material/>
+			</visual>
+		</link>
+	</xacro:macro>
+
+
+
+
+
+<!--MODEL CONSTRUCTION MODEL CONSTRUCTION MODEL CONSTRUCTION MODEL CONSTRUCTION-->
+<!--____________________________________________________________________-->
+
+<!--base_link-->
+	<link name="base_link"/> <!--✓-->
+	<joint name="base_joint" type="fixed"> <!--✓-->
+		<parent link="base_link"/>
+		<child link="midframe_front" />
+	</joint>
+	
+	
+<!--Midframe links-->	
+<!--__________________________________________-->	
+	<!--front mid-frame body element-->
+	<xacro:body_macro 
+				name="midframe_front" xyz="0 0 0"/> <!--✓-->			
+	<!--back mid-frame body element-->
+	<xacro:body_macro 
+				name="midframe_rear" xyz="0 0 0"/> <!--✓-->
+	
+	
+<!--Internal Joint-->
+<!--__________________________________________-->
+	<!--defines translational joint between vehicle halves-->	
+	<xacro:prismatic_joint_macro 
+				name="internal_prismatic_joint" parent="midframe_front" 
+				child="midframe_rear" xyz="${-body_x} 0 0"/> <!--✓-->
+
+
+<!--Gantry Links; these form the attachment between the midframe links and axle links-->				
+<!--__________________________________________-->
+	<!--front attachment-->
+	<xacro:attachment_macro 
+				name="front_attachment" xyz="0 0 0"/> <!--✓-->
+	<!--rear attachment-->
+	<xacro:attachment_macro 
+				name="rear_attachment" xyz="0 0 0"/> <!--✓-->	
+
+
+<!--Joints connecting midframe to attachment links and the attachment links to the axles-->
+<!--__________________________________________-->
+	<!--front yaw-->
+	<xacro:yaw_joint_macro 
+				name="front_axle_yaw_joint" parent="midframe_front" 
+				child="front_attachment" xyz="${body_x/4} 0 ${body_to_axle/2}" 
+				axis="0 0 1"/> <!--✓-->
+	<!--rear yaw-->					
+	<xacro:yaw_joint_macro 
+				name="rear_axle_yaw_joint" parent="midframe_rear" 
+				child="rear_attachment" xyz="-${body_x/4} 0 ${body_to_axle/2}" 
+				axis="0 0 1"/> <!--✓-->
+	<!--front roll-->				
+	<xacro:roll_joint_macro 
+				name="front_axle_roll_joint" parent="front_attachment" 
+				child="front_axle" xyz="0 0 ${body_to_axle/2}" 
+				axis="1 0 0"/> <!--✓-->
+	<!--rear roll-->	
+	<xacro:roll_joint_macro 
+				name="rear_axle_roll_joint" parent="rear_attachment" 
+				child="rear_axle" xyz="0 0 ${body_to_axle/2}" 
+				axis="1 0 0"/> <!--✓-->
+	<!--front roll>				
+	<xacro:pivot_joint_macro 
+				name="front_axle_roll_joint" parent="front_attachment" 
+				child="front_dummy_link" xyz="0 0 ${body_to_axle/2}" 
+				axis="1 0 0"/> <!✓-->
+	<!--rear roll>	
+	<xacro:pivot_joint_macro 
+				name="rear_axle_roll_joint" parent="rear_attachment" 
+				child="rear_dummy_link" xyz="0 0 ${body_to_axle/2}" 
+				axis="1 0 0"/> <!✓-->
+	<!--fixed joint between front axle and dummy link>
+	<xacro:fixed_joint_macro 
+				name="front_axle_fixed_joint" parent="front_dummy_link" 
+				child="front_axle" xyz="0 0 -0.051"/>
+	<!fixed joint between front real and dummy link>
+	<xacro:fixed_joint_macro 
+				name="rear_axle_fixed_joint" parent="rear_dummy_link" 
+				child="rear_axle" xyz="0 0 -0.051"/-->
+
+
+<!--Axle Links-->
+<!--__________________________________________-->
+	<!--Front axle-->
+	<xacro:axle_macro 
+				name="front_axle" xyz="0 0 0"/> <!--✓-->
+	<!--xacro:dummy_link_macro 
+				name="front_dummy_link" xyz="0 0 0"/> <!✓-->
+	<!--Rear axle-->
+	<xacro:axle_macro 
+				name="rear_axle" xyz="0 0 0"/> <!--✓-->
+	<!--xacro:dummy_link_macro 
+				name="rear_dummy_link" xyz="0 0 0"/> <!✓-->
+
+
+<!--Wheel Links-->
+<!--__________________________________________-->
+	<!--Front left wheel-->		
+	<xacro:wheel_macro 
+				name="wheel_FL" model="shrew_wheel.STL"/> <!--✓-->
+	<!--Front right wheel-->
+	<xacro:wheel_macro 
+				name="wheel_FR" model="shrew_wheel.STL"/> <!--✓-->
+	<!--Back left wheel-->					
+	<xacro:wheel_macro 
+				name="wheel_BL" model="shrew_wheel.STL"/> <!--✓-->
+	<!--Back right wheel-->
+	<xacro:wheel_macro 
+				name="wheel_BR" model="shrew_wheel.STL"/> <!--✓-->	
+	
+<!--Wheel Joints-->
+<!--__________________________________________-->
+	<!--Front left wheel joint-->	
+	<xacro:joint_wheel_macro 
+				xyz="0  ${wheel_joint} 0" name="joint_wheel_FL" 
+				parent="front_axle" child="wheel_FL"/> <!--✓-->
+	<!--Front right wheel joint-->
+	<xacro:joint_wheel_macro 
+				xyz="0  ${-wheel_joint} 0" name="joint_wheel_FR" 
+				parent="front_axle" child="wheel_FR"/> <!--✓-->
+	<!--Back left wheel joint-->								
+	<xacro:joint_wheel_macro 
+				xyz="0  ${wheel_joint} 0" name="joint_wheel_BL" 
+				parent="rear_axle" child="wheel_BL"/> <!--✓-->
+	<!--Back right wheel joint-->
+	<xacro:joint_wheel_macro 
+				xyz="0  ${-wheel_joint} 0" name="joint_wheel_BR" 
+				parent="rear_axle" child="wheel_BR"/> <!--✓-->
+
+<!--Other Links and Joint-->				
+<!--__________________________________________-->
+	<xacro:part_macro 
+				name="winch" model="shrew_winch.STL" 
+				mass="0.73"/> <!--✓-->
+	<xacro:part_macro 
+				name="vslot" model="shrew_slot.STL" 
+				mass="0.365"/> <!--✓-->
+	<xacro:electronics_box_macro 
+				name = "electronics_box" xyz="0 0 0"/>
+	<xacro:fixed_joint_macro 
+				name="winch_fixed_joint" parent="front_axle" 
+				child="winch" xyz="0.024 0 0.121"/> <!--✓-->
+	<xacro:fixed_joint_macro 
+				name="vslot_fixed_joint" parent="rear_axle" 
+				child="vslot" xyz="-0.077 0 0.075"/> <!--✓-->
+	<xacro:fixed_joint_macro 
+				name="electronics_fixed_joint" parent="midframe_rear" 
+				child="electronics_box" xyz="${electronics_box_offset} 0 ${electronics_box_z/2+body_z/2}"/>
+
+<!--check_urdf <(xacro inorder shrew_robot.urdf.xacro) put two dashes before inorder-->
+
+	<!--Use gazebo ros control to control joints individually-->
+	<!--gazebo>
+		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+			<robotNamespace>/shrew_robot</robotNamespace>		
+		</plugin>
+	</gazebo-->
+	<gazebo>
+		<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+			<robotNamespace>/shrew_robot</robotNamespace>		
+		</plugin>
+		<!--plugin name="skid_steer_drive_controller" filename="libgazebo_ros_skid_steer_drive.so">
+			<updateRate>100.0</updateRate>
+			<robotNamespace>/shrew_robot</robotNamespace>
+			<leftFrontJoint>joint_wheel_FL</leftFrontJoint>
+			<rightFrontJoint>joint_wheel_FR</rightFrontJoint>
+			<leftRearJoint>joint_wheel_BL</leftRearJoint>
+			<rightRearJoint>joint_wheel_BR</rightRearJoint>
+			<wheelSeparation>1</wheelSeparation>
+			<wheelDiameter>0.267</wheelDiameter>
+			<robotBaseFrame>base_link</robotBaseFrame>
+			<torque>20</torque>
+			<topicName>cmd_vel</topicName>
+			<broadcastTF>false</broadcastTF>
+		</plugin-->
+	</gazebo>
+		
+
+</robot>
