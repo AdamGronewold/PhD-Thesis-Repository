@@ -1,0 +1,65 @@
+shrew_robot:
+
+  # Publish all joint states -----------------------------------
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50  
+  
+  # Position Controllers ---------------------------------------
+  internal_joint_position_controller:
+    type: effort_controllers/JointPositionController
+    joint: internal_prismatic_joint
+    pid: {p: 300.0, i: 80, d: 0.0}
+
+  front_yaw_position_controller:
+    type: effort_controllers/JointPositionController
+    joint: front_axle_yaw_joint
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  rear_yaw_position_controller:
+    type: effort_controllers/JointPositionController
+    joint: rear_axle_yaw_joint
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+
+  front_roll_position_controller:
+    type: effort_controllers/JointPositionController
+    joint: front_axle_roll_joint
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  rear_roll_position_controller:
+    type: effort_controllers/JointPositionController
+    joint: rear_axle_roll_joint
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+    
+  #wheel_FL_position_controller:
+  #  type: effort_controllers/JointPositionController
+  #  joint: joint_wheel_FL
+  #  pid: {p: 100.0, i: 0.01, d: 10.0}
+  #wheel_FR_position_controller:
+  #  type: effort_controllers/JointPositionController
+  #  joint: joint_wheel_FR
+  #  pid: {p: 100.0, i: 0.01, d: 10.0}
+  #wheel_BL_position_controller:
+  #  type: effort_controllers/JointPositionController
+  #  joint: joint_wheel_BL
+  #  pid: {p: 100.0, i: 0.01, d: 10.0}
+  #wheel_BR_position_controller:
+  #  type: effort_controllers/JointPositionController
+  #  joint: joint_wheel_BR
+  #  pid: {p: 100.0, i: 0.01, d: 10.0}
+    
+  # Velocity Controllers -------------------------------------
+  wheel_FL_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: joint_wheel_FL
+    pid: {p: 100.0, i: 0.0, d: 1.0}
+  wheel_FR_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: joint_wheel_FR
+    pid: {p: 100.0, i: 0.00, d: 1.0}
+  wheel_BL_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: joint_wheel_BL
+    pid: {p: 100.0, i: 0.00, d: 1.0}
+  wheel_BR_velocity_controller:
+    type: effort_controllers/JointVelocityController
+    joint: joint_wheel_BR
+    pid: {p: 100.0, i: 0.00, d: 1.0}

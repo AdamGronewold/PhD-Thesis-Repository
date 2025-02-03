@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>terrain_patches</name>
+  <version>0.0.0</version>
+  <description>The terrain_patches package is a simple urdf type structure constructed to create a terrain model for analyzing a robot passing over terrain with variable resistance.</description>
+
+  <!-- <maintainer email="Adam.M.Gronewold.TH@Dartmouth.edu">Adam Gronewold</maintainer> -->
+  <maintainer email="Adam.M.Gronewold.TH@Dartmouth.edu">Adam Gronewold</maintainer>
+
+
+  <!-- License tags -->
+  <license>AFL-3.0</license>
+  <license>>ECL-2.0</license>
+
+  <!-- Dependencies -->
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>gazebo_ros</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_export_depend>gazebo_ros</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>rospy</build_export_depend>
+  <exec_depend>gazebo_ros</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>rospy</exec_depend>
+
+
+  <!-- Export tag -->
+  <export>
+  </export>
+</package>

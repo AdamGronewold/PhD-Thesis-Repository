@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<robot>
+  <!-- ros_control plugin -->
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/terrain_patches</robotNamespace>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+    </plugin>
+  </gazebo>
+  
+  <!-- Block1 -->
+	<gazebo reference="base_link">
+		<material>Gazebo/Grass</material>
+	</gazebo>
+
+	<!-- Block2 -->
+	<gazebo reference="block_x1y0">
+		<material>Gazebo/Footway</material>
+	</gazebo>
+
+	<!-- Block3 -->
+	<gazebo reference="block_x1y1">
+		<material>Gazebo/Grass</material>
+	</gazebo>
+
+	<!-- Block4 -->
+	<gazebo reference="block_x0y1">
+		<material>Gazebo/Footway</material>
+	</gazebo>
+</robot>
