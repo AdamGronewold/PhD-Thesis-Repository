@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+	<!-- Open custom plotting rqt.-->
+	<node name = "rqt_wheel_vel" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim)/rqt_perspectives/ShrewSimWheelVelocities.perspective"/>
+		
+	<node name = "rqt_wheel_effort" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim)/rqt_perspectives/ShrewSimWheelEffort.perspective"/>
+		
+	<node name = "rqt_commands" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim)/rqt_perspectives/ShrewSimWheelCommands.perspective"/>
+		
+	<node name = "rqt_yaw_angle" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim)/rqt_perspectives/ShrewSimYawJoints.perspective"/>
+		
+	<node name = "rqt_slip_perspective" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim)/rqt_perspectives/ShrewSimSlip.perspective"/>
+		
+</launch>

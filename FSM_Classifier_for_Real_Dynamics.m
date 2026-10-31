@@ -4,6 +4,12 @@
 % The transition thresholds are tuned to real world sensor dynamics and can be used in real-time on a robot
 % or to classify existing sensor joint state data.
 % By Adam Gronewold
+%
+% Thesis Chapter 5.3 / Appendix A.1: this file is a snippet, not a complete script.
+% It assumes a caller that already has loop index i and a sensor struct
+% (angle, velocity, acceleration histories, classifier_window, current_state).
+% The same classifier is used in the MATLAB simulations in this repository
+% and in the corresponding on-robot code (see the cornbot repository).
 %----------------------------------------------------------------------
 
 

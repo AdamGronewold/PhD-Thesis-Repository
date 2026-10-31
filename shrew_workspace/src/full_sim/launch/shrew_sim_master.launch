@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- use this launch file to launch the shrew with terrain in custom simulation environment in Gazebo-->
+	
+	<!-- Robot spawn pose -->
+  	<arg name="x" default="0"/>
+  	<arg name="y" default="0"/>
+  	<arg name="z" default="0.4"/>
+  	<arg name="roll" default="0"/>
+  	<arg name="pitch" default="0"/>
+  	<arg name="yaw" default="0"/>
+  	
+  	<!-- Should we visualize in Rviz-->
+  	<arg name="rviz" default="true"/>
+  	
+	<!-- arguments you can pass to the terrain launch file -->
+	<arg name="paused" default="false"/>
+	<arg name="use_sim_time" default="true"/>
+	<arg name="gui" default="true"/>
+	<arg name="headless" default="false"/>
+	<arg name="debug" default="false"/>
+
+	<!-- Custom Gazebo simulation -->
+	<include file="$(find full_sim)/launch/terrain_patches_sim_stage_gazebo.launch">
+		<arg name="debug" value="$(arg debug)" />
+		<arg name="gui" value="$(arg gui)" />
+		<arg name="paused" value="$(arg paused)"/>
+		<arg name="use_sim_time" value="$(arg use_sim_time)"/>
+		<arg name="headless" value="$(arg headless)"/>
+	</include>
+
+	<!-- Load the robot into the ROS Parameter Server -->
+	<param name="robot_description" command="$(find xacro)/xacro 
+		'$(find shrew_robot)/urdf/shrew_robot.urdf.xacro'" />
+
+	<!-- Run a python script to the send a service call to gazebo_ros to spawn the URDF model-->
+    <node name="spawn_shrew" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+    args="-urdf -model shrew_robot -param robot_description
+    		-x $(arg x) -y $(arg y) -z $(arg z)
+            -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)"/>
+
+	<!-- Open Rviz -->
+	<group if="$(arg rviz)">
+		<!--Publish transforms from world frame to each model-->
+		<node name="full_sim_world_tf2_broadcaster" pkg="shrew_plugins" 
+			type="full_sim_world_tf2_broadcaster" args="/shrew_robot"/>
+	
+		<!--Publish static transform between the shrew_robot and its baselink-->
+		<node pkg="tf2_ros" type="static_transform_publisher" name="shrew_static_tf2_broadcaster" args="0 0 0 0 0 0 1 shrew_robot base_link" />
+	
+		<!--node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/-->
+		<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+			
+		<!-- Show in Rviz   --> <!--Rviz time will match gazebo since "use_sim_time" is true by default-->
+		<node name="rviz" pkg="rviz" type="rviz" args="-d $(find full_sim)/rviz/full_sim.rviz"/>
+	
+	</group>
+
+</launch>

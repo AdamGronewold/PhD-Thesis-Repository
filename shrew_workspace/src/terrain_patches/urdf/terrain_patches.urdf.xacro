@@ -1,0 +1,451 @@
+<?xml version='1.0'?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="terrain_patches">
+	
+	<!--run "rosrun xacro xacro.py terrain_patches.urdf.xacro > terrain_patches.urdf" to copy this .urdf.xacro to a .urdf-->
+	
+	<!--general infrastructure loosely follows http://gazebosim.org/tutorials/?tut=ros_urdf for urdf use in Gazebo. -->
+
+	<!--Properties-->
+	<xacro:property name="x_width" value="10" /> <!--dimension of blocks in x-->
+	<xacro:property name="y_length" value="10" /> <!--dimension of blocks in y-->
+	<xacro:property name="z_height" value="0.2"/> <!--dimension of blocks in z-->
+	
+	<xacro:property name="wall_width" value="0.4" /> <!--dimension of boundary walls to contain the robot-->
+	<xacro:property name="wall_length" value="30" /> 
+	<xacro:property name="wall_height" value="1"/>
+
+	<xacro:property name="body_mass" value="1000" /> <!--arbitrarily large mass-->
+	<xacro:property name="inertia_coeff" value="${(1/12)*body_mass}"/>
+
+
+	<!-- Import Rviz colors -->
+	<xacro:include filename="$(find terrain_patches)/media/materials/scripts/materials.xacro" />
+	
+	<!-- Import my texture script for Gazebo -->
+	<!--xacro:include filename="$(find terrain_patches)/materials/terrain_gazebo.material" /-->
+
+<!--____________________________________________________________________-->
+	<!--Macros-->
+	<xacro:macro name="default_inertial">
+		<inertial>
+			<mass value="${body_mass}" />
+			<inertia 
+				ixx="${inertia_coeff*(pow(z_height,2) + pow(y_length,2))}" ixy="0" ixz="0" 
+				iyy="${inertia_coeff*(pow(z_height,2) + pow(x_width,2))}" iyz="0"
+				izz="${inertia_coeff*(pow(x_width,2) + pow(y_length,2))}"/>
+		</inertial>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="fixed_joint_macro" params="xyz name parent child">
+		<joint name="${name}" type="prismatic">
+			<parent link="${parent}"/>
+			<child link="${child}"/>
+			<origin rpy="0 0 0" xyz="${xyz}"/>
+			<axis xyz="0 0 1"/>
+			<limit effort="-1" lower="-0.0001" upper="0.0001" velocity="-1"/>
+		</joint>
+	</xacro:macro>
+
+<!--____________________________________________________________________-->
+	<xacro:macro name="link_macro" params="xyz name color">
+		<link name="${name}">
+			<xacro:default_inertial />
+			<collision>
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${x_width} ${y_length} ${z_height}" />
+				</geometry>
+			</collision>
+			<visual>
+				<origin rpy="0 0 0" xyz="${xyz}"/>
+				<geometry>
+					<box size="${x_width} ${y_length} ${z_height}" />
+				</geometry>
+				<material name="${color}"/>
+			</visual>
+			
+		</link>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="block_macro" params="name name2 xyz xyz2 parent child color">
+		<xacro:link_macro name="${name}" xyz="${xyz}" color="${color}"/>
+
+		<xacro:fixed_joint_macro 
+				name="${name2}" xyz="${xyz2}" 
+				parent="${parent}" child="${child}"/>
+	</xacro:macro>
+<!--____________________________________________________________________-->
+	<xacro:macro name="barrier_macro" params="xyz xyz2 name name2 parent child rpy">
+		<link name="${name}">
+			<xacro:default_inertial />
+			<collision>
+				<origin rpy="${rpy}" xyz="${xyz}"/>
+				<geometry>
+					<box size="${wall_width} ${wall_length} ${wall_height}" />
+				</geometry>
+			</collision>
+			<visual>
+				<origin rpy="${rpy}" xyz="${xyz}"/>
+				<geometry>
+					<box size="${wall_width} ${wall_length} ${wall_height}" />
+				</geometry>
+				<material name="white"/>
+			</visual>
+		</link>
+		<xacro:fixed_joint_macro 
+				name="${name2}" xyz="${xyz2}" 
+				parent="${parent}" child="${child}"/>
+	</xacro:macro>
+	
+
+	<!--Construction of blocks-->
+	<link name="world"/>
+	<joint name="world_to_block_0" type="fixed">
+		<parent link="world"/>
+		<child link="block_0"/>
+	</joint>
+
+	<!-- block_0 -->	
+	<xacro:link_macro 
+				name="block_0" xyz="0 0 ${z_height/2}"  
+				color="green"/>		
+	<!-- block_1 -->	
+	<xacro:block_macro 
+				name="block_1" xyz="${x_width/2} 0 ${z_height/2}"
+				name2="block_1_joint" xyz2="${(1/2)*x_width} 0 0"
+				parent="block_0" child="block_1"
+				color="orange"/>
+	<!-- block_2 -->	
+	<xacro:block_macro 
+				name="block_2" xyz="${x_width/2} ${y_length/2} ${z_height/2}"
+				name2="block_2_joint" xyz2="0 ${(1/2)*y_length} 0" 
+				parent="block_1" child="block_2"
+				color="grey"/>
+	<!-- block_3 -->				
+	<xacro:block_macro 
+				name="block_3" xyz="0 ${y_length/2} ${z_height/2}"
+				name2="block_3_joint" xyz2="${(-1/2)*x_width} 0 0" 
+				parent="block_2" child="block_3"
+				color="brown"/> 
+	<!-- block_4 -->				
+	<xacro:block_macro 
+				name="block_4" xyz="${-x_width/2} ${y_length/2} ${z_height/2}"
+				name2="block_4_joint" xyz2="${(-1/2)*x_width} 0 0" 
+				parent="block_3" child="block_4"
+				color="black"/>
+	<!-- block_5 -->				
+	<xacro:block_macro 
+				name="block_5" xyz="${-x_width/2} 0 ${z_height/2}"
+				name2="block_5_joint" xyz2="0 ${(-1/2)*y_length} 0" 
+				parent="block_4" child="block_5"
+				color="white"/>
+	<!-- block_6 -->				
+	<xacro:block_macro 
+				name="block_6" xyz="${-x_width/2} ${-y_length/2} ${z_height/2}"
+				name2="block_6_joint" xyz2="0 ${(-1/2)*y_length} 0" 
+				parent="block_5" child="block_6"
+				color="red"/> 
+	<!-- block_7 -->				
+	<xacro:block_macro 
+				name="block_7" xyz="0 ${-y_length/2} ${z_height/2}"
+				name2="block_7_joint" xyz2="${(1/2)*x_width} 0 0" 
+				parent="block_6" child="block_7"
+				color="blue"/> 
+	<!-- Block8 -->				
+	<xacro:block_macro 
+				name="block_8" xyz="${x_width/2} ${-y_length/2} ${z_height/2}"
+				name2="block_8_joint" xyz2="${(1/2)*x_width} 0 0" 
+				parent="block_7" child="block_8"
+				color="tan"/> 
+				
+	<!--BarrierWall0-->
+	<xacro:barrier_macro
+				name="wall_0" name2="wall_0_joint" 
+				xyz="${wall_width/2} ${wall_length/2} ${wall_height/2}" xyz2="${x_width} ${-y_length} 0" 
+				rpy="0 0 0" parent="block_8" child="wall_0"/>
+				
+	<!--BarrierWall1-->
+	<xacro:barrier_macro
+				name="wall_1" name2="wall_1_joint" 
+				xyz="${-wall_length/2} ${wall_width/2} ${wall_height/2}" xyz2="0 ${wall_length} 0" 
+				rpy="0 0 ${3.141592/2}" parent="wall_0" child="wall_1"/>
+	
+	<!--BarrierWall2-->
+	<xacro:barrier_macro
+				name="wall_2" name2="wall_2_joint" 
+				xyz="${-wall_width/2} ${-wall_length/2} ${wall_height/2}" xyz2="${-wall_length} 0 0" 
+				rpy="0 0 3.141592" parent="wall_1" child="wall_2"/>	
+
+	<!--BarrierWall3-->
+	<xacro:barrier_macro
+				name="wall_3" name2="wall_3_joint" 
+				xyz="${wall_length/2} ${-wall_width/2} ${wall_height/2}" xyz2="0 ${-wall_length} 0" 
+				rpy="0 0 ${(1/2)*3.141592}" parent="wall_2" child="wall_3"/>				
+
+				
+<!--____________________________________________________________________-->
+	<!-- Specifying Gazebo Colors -->  
+	<!-- block_0-->
+	<gazebo reference="block_0">
+		<material>Dirt</material> <!--Dirt is a custom texture type specified in the media folder.-->
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>
+	</gazebo>
+
+	<!-- block_1 -->
+	<gazebo reference="block_1">
+		<material>Dirt</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+
+	<!-- block_2 -->
+	<gazebo reference="block_2">
+		<material>Gravel</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+
+	<!-- block_3 -->
+	<gazebo reference="block_3">
+		<material>Mud</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+	
+	<!-- block_4 -->
+	<gazebo reference="block_4">
+		<material>Red_Sand</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+	
+	<!-- block_5 -->
+	<gazebo reference="block_5">
+		<material>Dirt</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+	
+	<!-- block_6 -->
+	<gazebo reference="block_6">
+		<material>Sand</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.1</mu>
+						<mu2>0.1</mu2>
+						<fdir1></fdir1>
+						<slip1>0.0001</slip1>
+						<slip2>0.0001</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+	
+	<!-- block_7 -->
+	<gazebo reference="block_7">
+		<material>Sand</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<!surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.1</mu>
+						<mu2>0.1</mu2>
+						<fdir1></fdir1>
+						<slip1>0.0001</slip1>
+						<slip2>0.0001</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>		
+	</gazebo>
+	
+	<!-- Block8 -->
+	<gazebo reference="block_8">
+		<material>Dirt</material>
+		<collision>
+			<surface>			
+				<friction>
+					<!--torsional>
+						<coefficient>0.5</coefficient>
+						<use_patch_radius>1</use_patch_radius>
+						<patch_radius>0.01</patch_radius>
+						<surface_radius></surface_radius>
+						<ode>
+							<slip></slip>
+						</ode>
+					</torsional-->
+					<ode>
+						<mu>0.6</mu>
+						<mu2>0.6</mu2>
+						<fdir1></fdir1>
+						<slip1>0</slip1>
+						<slip2>0</slip2>
+					</ode>
+				</friction>							
+			</surface>		
+		</collision>	
+	</gazebo>
+	
+	<!--BarrierWall1-->
+	<gazebo reference="wall_0">
+		<material>Wall</material>
+	</gazebo>	
+	
+	<!--BarrierWall2-->
+	<gazebo reference="wall_1">
+		<material>Wall</material>
+	</gazebo>
+	
+	<!--BarrierWall3-->
+	<gazebo reference="wall_2">
+		<material>Wall</material>
+	</gazebo>
+	
+	<!--BarrierWall4-->
+	<gazebo reference="wall_3">
+		<material>Wall</material>
+	</gazebo>
+
+</robot>

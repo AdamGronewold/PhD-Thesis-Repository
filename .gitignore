@@ -1,0 +1,12 @@
+# MATLAB editor leftovers
+*.asv
+*.m~
+
+# Catkin / Gazebo if someone builds the snapshot locally
+shrew_workspace/build/
+shrew_workspace/devel/
+shrew_workspace/logs/
+**/logs/
+
+# Do not re-commit the archive; the unzipped tree is the source of truth
+shrew_workspace.zip

@@ -1,0 +1,167 @@
+material Wall
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        
+        texture ../textures/wall.jpg // Relative to the location of the material script
+        scale 1 1
+      }
+    }
+  }
+}
+
+material Surface
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        
+        texture ../textures/surface.jpg
+        scale 0.05 0.05
+      }
+    }
+  }
+}
+
+material Dirt
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        
+        texture ../textures/dirt.jpg
+        scale 0.5 0.5
+      }
+    }
+  }
+}
+
+material Dry_Dirt
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/dry_dirt.jpg
+        scale 0.5 0.5
+      }
+    }
+  }
+}
+
+material Gravel
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/gravel.jpg
+        scale 0.5 0.5
+      }
+    }
+  }
+}
+
+material Mud
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/mud.jpg
+        scale 0.5 0.5
+      }
+    }
+  }
+}
+
+material Wet_Mud
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/wet_mud.jpg
+        scale 1 1
+      }
+    }
+  }
+}
+
+material Red_Sand
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/red_sand.jpeg
+        scale 1 1
+      }
+    }
+  }
+}
+
+material Rocky_Dirt
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/rocky_dirt.png
+        scale 1 1
+      }
+    }
+  }
+}
+
+material Sand
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/sand.jpg
+        scale 1 1
+      }
+    }
+  }
+}
+
+material Rock
+{
+  technique
+  {
+    pass
+    {
+      texture_unit
+      {
+        texture ../textures/solid_rock.jpeg
+        scale 1 1
+      }
+    }
+  }
+}

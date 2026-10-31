@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Open graph of ROS Nodes and TF Tree-->
+	<node name = "rqt_graphs_perspective" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim_fixed_joint)/rqt_perspectives/FixedShrewSimGraphProcess.perspective"/>
+
+	<!-- Open custom plotting rqt.-->
+	<node name = "rqt_wheel_vel_perspective" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim_fixed_joint)/rqt_perspectives/FixedShrewSimWheelVelocities.perspective"/>
+		
+	<!-- Open custom plotting rqt.-->
+	<node name = "rqt_wheel_commands_perspective" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim_fixed_joint)/rqt_perspectives/FixedShrewSimWheelCommands.perspective"/>
+		
+	<!-- Open custom plotting rqt.-->
+	<node name = "rqt_wheel_effort_perspective" pkg = "rqt_gui" type = "rqt_gui" output = "screen" 
+		args = "--perspective-file $(find full_sim_fixed_joint)/rqt_perspectives/FixedShrewSimWheelEffort.perspective"/>
+		
+</launch>
